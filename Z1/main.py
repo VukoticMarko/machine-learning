@@ -1,12 +1,127 @@
-import matplotlib.pyplot
 import numpy as np
 import pandas
 
-import matplotlib.pyplot
 import sys
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-e = 2.718281828459045
+
+class Regression:
+
+    def __init__(self):
+        self._t0 = 1
+        self._t1 = 1
+
+    def calc_function(self, x):
+        # t1 * x^5 + t2
+        return self._t0 * x**6 + self._t1
+
+    def derivative_t0(self, x, y, y_predicted):
+        return -(2 / len(x)) * sum(6 * x * (y - y_predicted))
+
+    def derivative_t1(self, y, y_predicted):
+        return -(2 / len(y)) * sum(y - y_predicted)
+
+    def mean_squared_error(self, y_true, y_predicted):
+        # Calculating the loss or cost
+        cost = np.sum((y_true - y_predicted) ** 2) / len(y_true)
+        return cost
+
+    def root_mean_squared_error(self, y_true, y_predicted):
+        return self.mean_squared_error(y_true, y_predicted) ** 0.5
+
+    # def plot_function(self, from_x, to_x):
+    #     x_data = np.linspace(from_x, to_x, 100)
+    #     y_data = reg.calc_function(x_data)
+    #     plt.plot(x_data, y_data)
+
+    def gradient_descent(self, x, y, iterations=12000, learning_rate=0.2,
+                         stopping_threshold=1e-6, validation_data=None):
+        self._t0 = 0.1
+        self._t1 = 0.01
+
+        validation_best_t0 = self._t0
+        validation_best_t1 = self._t1
+        validation_best_cost = 1000
+
+        n = float(len(x))
+
+        costs = []
+        weights = []
+        previous_cost = None
+
+        for i in range(iterations):
+
+            y_predicted = self.calc_function(x)
+
+            current_cost = self.root_mean_squared_error(y, y_predicted)
+
+            if previous_cost and abs(previous_cost - current_cost) <= stopping_threshold:
+                break
+
+            if validation_data is not None:
+                valid_y_predicted = self.calc_function(validation_data.X)
+                validation_current_cost = self.root_mean_squared_error(validation_data.Y, valid_y_predicted)
+
+                if validation_current_cost < validation_best_cost:
+                    validation_best_cost = validation_current_cost
+                    validation_best_t0 = self._t0
+                    validation_best_t1 = self._t1
+
+            previous_cost = current_cost
+
+            costs.append(current_cost)
+            weights.append(self._t0)
+
+            # Calculating the gradients
+            t0_derivative = self.derivative_t0(x, y, y_predicted)
+            t1_derivative = self.derivative_t1(y, y_predicted)
+
+            # Updating weights and bias
+            self._t0 = self._t0 - (learning_rate * t0_derivative)
+            self._t1 = self._t1 - (learning_rate * t1_derivative)
+
+            # Printing the parameters for each 1000th iteration
+            # print(f"Iteration {i + 1}: Cost: {current_cost:<10.5} t0: {self._t0:<10.5} t1: {self._t1:<10.5}")
+
+        # Visualizing the weights and cost at for all iterations
+        # plt.figure(figsize=(8, 6))
+        # plt.plot(weights, costs)
+        # plt.scatter(weights, costs, marker='o', color='red')
+        # plt.title("Cost vs Weights")
+        # plt.ylabel("Cost")
+        # plt.xlabel("Weight")
+        # plt.show()
+        # print("Current cost: " + str(current_cost))
+
+        if validation_data is not None:
+            print("Valid-C-Cost:", validation_current_cost, " | Valid-Best-Cost", validation_best_cost )
+            self._t0 = validation_best_t0
+            self._t1 = validation_best_t1
+
+        return self._t0, self._t1
+
+
+def remove_outliers(csv):
+    outliers = []
+    for i, [x, y] in enumerate(csv.values):
+        if 0 < x < 1 and y > 30:
+            outliers.append(i)
+
+    csv.drop(index=csv.index[outliers], axis=0, inplace=True)
+
+
+def split_tvt(dataset, validate=0.15, test=0):
+    # random = np.random.randint(1, 10000)
+    random = 800
+    validate = dataset.sample(frac=validate, random_state=random)
+    dataset = dataset.drop(validate.index)
+
+    test = dataset.sample(frac=test, random_state=random)
+    dataset = dataset.drop(test.index)
+
+    train = dataset
+    return [train, validate, test]
+
 
 def main(argv):
     train_file = "train.csv"
@@ -15,126 +130,26 @@ def main(argv):
         train_file = argv[0]
         test_file = argv[1]
 
-
-    csv = pandas.read_csv(train_file)
+    train_data = pandas.read_csv(train_file)
     test_data = pandas.read_csv(test_file)
-    remove_outliers(csv)
+    remove_outliers(train_data)
 
+    # train_data, va, te = split_tvt(train_data)
 
-    # plt.scatter(csv.X, csv.Y)
+    # plt.scatter(train_data.X, train_data.Y)
 
+    reg = Regression()
+    reg.gradient_descent(train_data.X, train_data.Y, validation_data=None)
+    # reg.plot_function(0, 0.4)
 
-    gd = gradient_descent(csv.X, csv.Y)
-    print(gd)
+    # rmse = reg.root_mean_squared_error(te.Y, reg.calc_function(te.X))
+    # print(rmse)
 
-    print(gd)
+    rmse = reg.root_mean_squared_error(test_data.Y, reg.calc_function(test_data.X))
+    print(rmse)
 
-    x_data = np.linspace(0,0.4,100)
-    y_data = []
-    result_data = []
-
-    for x in x_data:
-        y_data.append(gd[0]*(x**6) + gd[1])
-        result_data.append([x, gd[0]*(x**6) + gd[1]])
-
-
-
-    plt.plot(x_data, y_data)
-
-    rmse = get_rmse(test_data, gd[0], gd[1])
-    print("RMSE:", rmse)
-    plt.show()
-
-
-
-def get_rmse(test_data, w, b):
-    predicted = []
-    plt.scatter(test_data.X, test_data.Y)
-
-    for x in test_data.X:
-        predicted_value = w*(x**6) + b
-        predicted.append([x, predicted_value])
-
-
-    return root_mean_squared_error(test_data.values, predicted)
-
-
-
-
-def remove_outliers(csv):
-    outliers = []
-    for i, [x,y] in enumerate(csv.values):
-        if 0 < x < 1 and y > 30:
-            outliers.append(i)
-
-    csv.drop(index=csv.index[outliers], axis=0, inplace=True)
-
-
-def gradient_descent(x, y, iterations=10000, learning_rate=0.2,
-                     stopping_threshold=1e-6):
-    # Initializing weight, bias, learning rate and iterations
-    current_weight = 0.1
-    current_bias = 0.01
-    iterations = iterations
-    learning_rate = learning_rate
-    n = float(len(x))
-
-    costs = []
-    weights = []
-    previous_cost = None
-
-    # Estimation of optimal parameters
-    for i in range(iterations):
-
-        # Making predictions
-        y_predicted = (current_weight * x**6) + current_bias
-
-        # Calculationg the current cost
-        current_cost = root_mean_squared_error(y, y_predicted)
-
-        # If the change in cost is less than or equal to
-        # stopping_threshold we stop the gradient descent
-        if previous_cost and abs(previous_cost - current_cost) <= stopping_threshold:
-            break
-
-        previous_cost = current_cost
-
-        costs.append(current_cost)
-        weights.append(current_weight)
-
-        # Calculating the gradients
-        weight_derivative = -(2 / n) * sum(6*x * (y - y_predicted))
-        bias_derivative = -(2 / n) * sum(y - y_predicted)
-
-        # Updating weights and bias
-        current_weight = current_weight - (learning_rate * weight_derivative)
-        current_bias = current_bias - (learning_rate * bias_derivative)
-
-        # Printing the parameters for each 1000th iteration
-        print(f"Iteration {i + 1}: Cost {current_cost}, Weight \
-        {current_weight}, Bias {current_bias}")
-
-    # Visualizing the weights and cost at for all iterations
-    # plt.figure(figsize=(8, 6))
-    # plt.plot(weights, costs)
-    # plt.scatter(weights, costs, marker='o', color='red')
-    # plt.title("Cost vs Weights")
-    # plt.ylabel("Cost")
-    # plt.xlabel("Weight")
     # plt.show()
-    print("Current cost: " + str(current_cost))
-    return current_weight, current_bias
 
-
-def mean_squared_error(y_true, y_predicted):
-    # Calculating the loss or cost
-    cost = np.sum((y_true - y_predicted) ** 2) / len(y_true)
-    return cost
-
-
-def root_mean_squared_error(y_true, y_predicted):
-    # Calculating the loss or cost
-    return mean_squared_error(y_true, y_predicted)
 
 
 if __name__ == '__main__':
