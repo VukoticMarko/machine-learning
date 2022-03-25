@@ -6,6 +6,8 @@ import matplotlib.pyplot
 import sys
 import matplotlib.pyplot as plt
 
+e = 2.718281828459045
+
 def main(argv):
     train_file = "train.csv"
     test_file = "test_preview.csv"
@@ -13,27 +15,62 @@ def main(argv):
         train_file = argv[0]
         test_file = argv[1]
 
+
     csv = pandas.read_csv(train_file)
-    pandas.plotting.scatter_matrix(csv, alpha=0.2, figsize=(6, 6), diagonal="kde")
-    x = [1, 2, 3]
-    y = np.array([[1, 2], [3, 4], [5, 6]])
-    matplotlib.pyplot.plot(x, y)
+    test_data = pandas.read_csv(test_file)
+    remove_outliers(csv)
 
 
-    # gradient_descent()
+    # plt.scatter(csv.X, csv.Y)
+
+
+    gd = gradient_descent(csv.X, csv.Y)
+    print(gd)
+
+    print(gd)
+
+    x_data = np.linspace(0,0.4,100)
+    y_data = []
+    result_data = []
+
+    for x in x_data:
+        y_data.append(gd[0]*(x**6) + gd[1])
+        result_data.append([x, gd[0]*(x**6) + gd[1]])
+
+
+
+    plt.plot(x_data, y_data)
+
+    rmse = get_rmse(test_data, gd[0], gd[1])
+    print("RMSE:", rmse)
+    plt.show()
+
+
+
+def get_rmse(test_data, w, b):
+    predicted = []
+    plt.scatter(test_data.X, test_data.Y)
+
+    for x in test_data.X:
+        predicted_value = w*(x**6) + b
+        predicted.append([x, predicted_value])
+
+
+    return root_mean_squared_error(test_data.values, predicted)
 
 
 
 
-    # plt.plot(csv)
-    x = [1,2,3]
-    y = [1,2,3]
-    matplotlib.pyplot.plot(x,y)
+def remove_outliers(csv):
+    outliers = []
+    for i, [x,y] in enumerate(csv.values):
+        if 0 < x < 1 and y > 30:
+            outliers.append(i)
 
-    print(csv)
+    csv.drop(index=csv.index[outliers], axis=0, inplace=True)
 
 
-def gradient_descent(x, y, iterations=1000, learning_rate=0.0001,
+def gradient_descent(x, y, iterations=10000, learning_rate=0.2,
                      stopping_threshold=1e-6):
     # Initializing weight, bias, learning rate and iterations
     current_weight = 0.1
@@ -50,10 +87,10 @@ def gradient_descent(x, y, iterations=1000, learning_rate=0.0001,
     for i in range(iterations):
 
         # Making predictions
-        y_predicted = (current_weight * x) + current_bias
+        y_predicted = (current_weight * x**6) + current_bias
 
         # Calculationg the current cost
-        current_cost = mean_squared_error(y, y_predicted)
+        current_cost = root_mean_squared_error(y, y_predicted)
 
         # If the change in cost is less than or equal to
         # stopping_threshold we stop the gradient descent
@@ -66,7 +103,7 @@ def gradient_descent(x, y, iterations=1000, learning_rate=0.0001,
         weights.append(current_weight)
 
         # Calculating the gradients
-        weight_derivative = -(2 / n) * sum(x * (y - y_predicted))
+        weight_derivative = -(2 / n) * sum(6*x * (y - y_predicted))
         bias_derivative = -(2 / n) * sum(y - y_predicted)
 
         # Updating weights and bias
@@ -78,14 +115,14 @@ def gradient_descent(x, y, iterations=1000, learning_rate=0.0001,
         {current_weight}, Bias {current_bias}")
 
     # Visualizing the weights and cost at for all iterations
-    plt.figure(figsize=(8, 6))
-    plt.plot(weights, costs)
-    plt.scatter(weights, costs, marker='o', color='red')
-    plt.title("Cost vs Weights")
-    plt.ylabel("Cost")
-    plt.xlabel("Weight")
-    plt.show()
-
+    # plt.figure(figsize=(8, 6))
+    # plt.plot(weights, costs)
+    # plt.scatter(weights, costs, marker='o', color='red')
+    # plt.title("Cost vs Weights")
+    # plt.ylabel("Cost")
+    # plt.xlabel("Weight")
+    # plt.show()
+    print("Current cost: " + str(current_cost))
     return current_weight, current_bias
 
 
@@ -93,6 +130,11 @@ def mean_squared_error(y_true, y_predicted):
     # Calculating the loss or cost
     cost = np.sum((y_true - y_predicted) ** 2) / len(y_true)
     return cost
+
+
+def root_mean_squared_error(y_true, y_predicted):
+    # Calculating the loss or cost
+    return mean_squared_error(y_true, y_predicted)
 
 
 if __name__ == '__main__':
