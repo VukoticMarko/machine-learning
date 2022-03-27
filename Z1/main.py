@@ -6,15 +6,18 @@ import sys
 
 
 # e = 1.718281828459045
+LOG_BASE = 8
+
+
 class Regression:
 
     def __init__(self):
-        self._t0 = 1
-        self._t1 = 1
+        self._t0 = 16.22
+        self._t1 = -3.7
 
     def calc_function(self, x):
         # t1 * x^5 + t2
-        return np.power(10, (self._t0 * x + self._t1))
+        return np.power(LOG_BASE, (self._t0 * x + self._t1))
         # return self._t0 * x**8 + x**e + self._t1
 
     def calc_log_function(self, x):
@@ -40,13 +43,14 @@ class Regression:
     #     y_data = self.calc_function(x_data)
     #     plt.plot(x_data, y_data)
 
-    def gradient_descent(self, x, y, iterations=20000, learning_rate=0.01,
+    def gradient_descent(self, x, y, iterations=30000, learning_rate=0.01,
                          stopping_threshold=1e-8, validation_data=None):
 
-        y = np.log10(y)
+        y = np.log(y) / np.log(LOG_BASE)
+        # plt.scatter(x, y, edgecolors='red')
 
-        self._t0 = 7.8339
-        self._t1 = -1.7869
+        self._t0 = 8.6673
+        self._t1 = -1.9766
         # self._t0 = 0
         # self._t1 = 0
 
@@ -92,7 +96,7 @@ class Regression:
             self._t1 = self._t1 - (learning_rate * t1_derivative)
 
             # Printing the parameters for each 1000th iteration
-            # print(f"Iteration {i + 1}: Cost: {10**current_cost:<10.5} t0: {self._t0:<10.5} t1: {self._t1:<10.5}")
+            # print(f"Iteration {i + 1}: Cost: {LOG_BASE**current_cost:<10.5} t0: {self._t0:<10.5} t1: {self._t1:<10.5}")
 
         # Visualizing the weights and cost at for all iterations
         # plt.plot(weights, costs)

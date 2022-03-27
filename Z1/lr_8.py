@@ -13,31 +13,31 @@ class Regression:
 
     def calc_function(self, x):
         # t1 * x^5 + t2
-        return self._t0 * x**8 + self._t1
+        return self._t0 * x**7 + self._t1
 
-    def derivative_t0(self, x, y, y_predicted):
-        return -(2 / len(x)) * sum(8 * x * (y - y_predicted))
+    def derivative_t0(self, x, y_predicted, y):
+        return (2 / len(x)) * sum(8 * x * (y_predicted - y))
 
-    def derivative_t1(self, y, y_predicted):
-        return -(2 / len(y)) * sum(y - y_predicted)
+    def derivative_t1(self, y_predicted, y):
+        return (2 / len(y)) * sum(y_predicted - y)
 
-    def mean_squared_error(self, y_true, y_predicted):
+    def mean_squared_error(self, y_predicted, y_true):
         # Calculating the loss or cost
-        cost = np.sum((y_true - y_predicted) ** 2) / len(y_true)
+        cost = np.sum((y_predicted - y_true) ** 2) / len(y_true)
         return cost
 
-    def root_mean_squared_error(self, y_true, y_predicted):
-        return self.mean_squared_error(y_true, y_predicted) ** 0.5
+    def root_mean_squared_error(self, y_predicted, y_true):
+        return self.mean_squared_error(y_predicted, y_true) ** 0.5
 
-    # def plot_function(self, from_x, to_x):
-    #     x_data = np.linspace(from_x, to_x, 100)
-    #     y_data = reg.calc_function(x_data)
-    #     plt.plot(x_data, y_data)
+    def plot_function(self, from_x, to_x):
+        x_data = np.linspace(from_x, to_x, 100)
+        y_data = self.calc_function(x_data)
+        # plt.plot(x_data, y_data)
 
-    def gradient_descent(self, x, y, iterations=25000, learning_rate=0.2,
-                         stopping_threshold=1e-6, validation_data=None):
-        self._t0 = 31000
-        self._t1 = 1000
+    def gradient_descent(self, x, y, iterations=25000, learning_rate=0.3,
+                         stopping_threshold=1e-8, validation_data=None):
+        self._t0 = 13000
+        self._t1 = 0.5
 
         validation_best_t0 = self._t0
         validation_best_t1 = self._t1
@@ -53,14 +53,14 @@ class Regression:
 
             y_predicted = self.calc_function(x)
 
-            current_cost = self.root_mean_squared_error(y, y_predicted)
+            current_cost = self.root_mean_squared_error(y_predicted, y)
 
             if previous_cost and abs(previous_cost - current_cost) <= stopping_threshold:
                 break
 
             if validation_data is not None:
                 valid_y_predicted = self.calc_function(validation_data.X)
-                validation_current_cost = self.root_mean_squared_error(validation_data.Y, valid_y_predicted)
+                validation_current_cost = self.root_mean_squared_error(valid_y_predicted, validation_data.Y)
 
                 if validation_current_cost < validation_best_cost:
                     validation_best_cost = validation_current_cost
@@ -73,8 +73,8 @@ class Regression:
             weights.append(self._t0)
 
             # Calculating the gradients
-            t0_derivative = self.derivative_t0(x, y, y_predicted)
-            t1_derivative = self.derivative_t1(y, y_predicted)
+            t0_derivative = self.derivative_t0(x, y_predicted, y)
+            t1_derivative = self.derivative_t1(y_predicted, y)
 
             # Updating weights and bias
             self._t0 = self._t0 - (learning_rate * t0_derivative)
@@ -86,10 +86,9 @@ class Regression:
         # Visualizing the weights and cost at for all iterations
         # plt.figure(figsize=(8, 6))
         # plt.plot(weights, costs)
-        # plt.scatter(weights, costs, marker='o', color='red')
-        # plt.title("Cost vs Weights")
+        # plt.title("Gradient descent")
         # plt.ylabel("Cost")
-        # plt.xlabel("Weight")
+        # plt.xlabel("T0")
         # plt.show()
         # print("Current cost: " + str(current_cost))
 
@@ -104,7 +103,7 @@ class Regression:
 def remove_outliers(csv):
     outliers = []
     for i, [x, y] in enumerate(csv.values):
-        if 0 < x < 1 and y > 30:
+        if 0 < x < 0.4 and y > 30:
             outliers.append(i)
 
     csv.drop(index=csv.index[outliers], axis=0, inplace=True)
@@ -136,20 +135,19 @@ def main(argv):
 
     # train_data, va, te = split_tvt(train_data)
 
-    # plt.scatter(train_data.X, train_data.Y)
+    # plt.scatter(train_data.X, train_data.Y, edgecolors='red')
 
     reg = Regression()
     reg.gradient_descent(train_data.X, train_data.Y, validation_data=None)
-    # reg.plot_function(0, 0.4)
+    # reg.plot_function(0, 0.5)
 
-    # rmse = reg.root_mean_squared_error(te.Y, reg.calc_function(te.X))
+    # rmse = reg.root_mean_squared_error(reg.calc_function(te.X), te.Y)
     # print(rmse)
 
-    rmse = reg.root_mean_squared_error(test_data.Y, reg.calc_function(test_data.X))
+    rmse = reg.root_mean_squared_error(reg.calc_function(test_data.X), test_data.Y)
     print(rmse)
 
     # plt.show()
-
 
 
 if __name__ == '__main__':
