@@ -92,7 +92,7 @@ class Regression:
             self._t1 = self._t1 - (learning_rate * t1_derivative)
 
             # Printing the parameters for each 1000th iteration
-            print(f"Iteration {i + 1}: Cost: {10**current_cost:<10.5} t0: {self._t0:<10.5} t1: {self._t1:<10.5}")
+            # print(f"Iteration {i + 1}: Cost: {10**current_cost:<10.5} t0: {self._t0:<10.5} t1: {self._t1:<10.5}")
 
         # Visualizing the weights and cost at for all iterations
         # plt.plot(weights, costs)
